@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#2196f3"/>
+  <title>TaskNest | Calendar</title>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet"/>
+</head>
+<body>
+  <nav class="blue">
+    <div class="nav-wrapper container">
+      <a href="index.html" class="brand-logo">TaskNest</a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="tasks.html">Tasks</a></li>
+        <li><a href="calendar.html" class="active">Calendar</a></li>
+        <li><a href="notes.html">Notes</a></li>
+        <li><a href="settings.html">Settings</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container section">
+    <h4>Your Calendar</h4>
+    <div id="calendar" style="margin-top: 30px;"></div>
+  </div>
+
+  <footer class="page-footer blue lighten-1">
+    <div class="container center-align white-text">
+      &copy; 2025 TaskNest
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const calendarEl = document.getElementById('calendar');
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        initialDate: '2025-09-01',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,listWeek'
+        },
+        events: [
+          { title: 'Team Meeting', start: '2025-09-10' },
+          { title: 'Doctor Appointment', start: '2025-09-15T10:30:00' },
+          { title: 'Project Deadline', start: '2025-09-22' }
+        ]
+      });
+      calendar.render();
+    });
+  </script>
+</body>
+</html>
+
+
+         
+

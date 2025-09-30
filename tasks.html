@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#2196f3"/>
+  <title>TaskNest | Tasks</title>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="manifest" href="manifest.json"/>
+</head>
+<body>
+  <nav class="blue">
+    <div class="nav-wrapper container">
+      <a href="index.html" class="brand-logo">TaskNest</a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="tasks.html" class="active">Tasks</a></li>
+        <li><a href="calendar.html">Calendar</a></li>
+        <li><a href="notes.html">Notes</a></li>
+        <li><a href="settings.html">Settings</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container section">
+    <h4>Your Tasks</h4>
+
+    <div class="row">
+      <form id="task-form" class="col s12">
+        <div class="input-field">
+          <input id="task-input" type="text" placeholder="Add a new task..." required />
+          <label for="task-input">New Task</label>
+        </div>
+        <button type="submit" class="btn blue waves-effect waves-light">
+          <i class="material-icons">add</i>
+        </button>
+      </form>
+    </div>
+
+    <ul id="task-list" class="collection"></ul>
+  </div>
+
+  <footer class="page-footer blue lighten-1">
+    <div class="container center-align white-text">
+      &copy; 2025 TaskNest
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('task-form');
+      const input = document.getElementById('task-input');
+      const list = document.getElementById('task-list');
+
+      let tasks = JSON.parse(localStorage.getItem('tasknest_tasks')) || [];
+
+      function renderTasks() {
+        list.innerHTML = '';
+        tasks.forEach((task, idx) => {
+          const li = document.createElement('li');
+          li.className = 'collection-item';
+          li.innerHTML = `
+            <label>
+              <input type="checkbox" ${task.done ? 'checked' : ''} data-index="${idx}" />
+              <span style="${task.done ? 'text-decoration: line-through;' : ''}">${task.text}</span>
+              <i class="material-icons secondary-content delete-task" data-index="${idx}"
+                 style="cursor: pointer;">delete</i>
+            </label>
+          `;
+          list.appendChild(li);
+        });
+      }
+
+      function save() {
+        localStorage.setItem('tasknest_tasks', JSON.stringify(tasks));
+      }
+
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (text) {
+          tasks.push({ text, done: false });
+          input.value = '';
+          renderTasks();
+          save();
+        }
+      });
+
+      list.addEventListener('click', e => {
+        if (e.target.matches('input[type="checkbox"]')) {
+          const idx = e.target.dataset.index;
+          tasks[idx].done = !tasks[idx].done;
+          renderTasks();
+          save();
+        }
+        if (e.target.classList.contains('delete-task')) {
+          const idx = e.target.dataset.index;
+          tasks.splice(idx, 1);
+          renderTasks();
+          save();
+        }
+      });
+
+      renderTasks();
+    });
+  </script>
+</body>
+</html>
+
+
+
+    

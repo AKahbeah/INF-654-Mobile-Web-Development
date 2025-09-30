@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#2196f3"/>
+  <title>TaskNest | Home</title>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="manifest" href="manifest.json"/>
+</head>
+<body>
+  <nav class="blue">
+    <div class="nav-wrapper container">
+      <a href="index.html" class="brand-logo">TaskNest</a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="tasks.html">Tasks</a></li>
+        <li><a href="calendar.html">Calendar</a></li>
+        <li><a href="notes.html">Notes</a></li>
+        <li><a href="settings.html">Settings</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container section">
+    <h4>Welcome Back!</h4>
+    <p class="grey-text">Here’s a quick look at your day.</p>
+
+    <h5>Today's Tasks</h5>
+    <ul class="collection">
+      <li class="collection-item">
+        <label>
+          <input type="checkbox" />
+          <span>Finish PWA prototype</span>
+        </label>
+      </li>
+      <li class="collection-item">
+        <label>
+          <input type="checkbox" />
+          <span>Call with team @ 3 PM</span>
+        </label>
+      </li>
+      <li class="collection-item">
+        <label>
+          <input type="checkbox" />
+          <span>Review notes for meeting</span>
+        </label>
+      </li>
+    </ul>
+
+    <h5>Quick Notes</h5>
+    <div class="row">
+      <div class="col s12 m6">
+        <div class="card blue lighten-5">
+          <div class="card-content">
+            <span class="card-title">Meeting Prep</span>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col s12 m6">
+        <div class="card yellow lighten-4">
+          <div class="card-content">
+            <span class="card-title">Ideas</span>
+            <p>Think about a color-coded tag system for tasks.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fixed-action-btn">
+    <a class="btn-floating btn-large red">
+      <i class="large material-icons">add</i>
+    </a>
+    <ul>
+      <li><a class="btn-floating blue tooltipped" data-tooltip="New Task"><i class="material-icons">check</i></a></li>
+      <li><a class="btn-floating green tooltipped" data-tooltip="New Note"><i class="material-icons">note_add</i></a></li>
+    </ul>
+  </div>
+
+  <footer class="page-footer blue lighten-1">
+    <div class="container center-align white-text">
+      &copy; 2025 TaskNest
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#2196f3"/>
+  <title>TaskNest | Notes</title>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="manifest" href="manifest.json"/>
+</head>
+<body>
+  <nav class="blue">
+    <div class="nav-wrapper container">
+      <a href="index.html" class="brand-logo">TaskNest</a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="tasks.html">Tasks</a></li>
+        <li><a href="calendar.html">Calendar</a></li>
+        <li><a href="notes.html" class="active">Notes</a></li>
+        <li><a href="settings.html">Settings</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container section">
+    <h4>Quick Notes</h4>
+    <p>Write down anything — your notes will be saved locally.</p>
+    <div class="input-field">
+      <textarea id="notepad" class="materialize-textarea" placeholder="Start typing..."></textarea>
+    </div>
+  </div>
+
+  <footer class="page-footer blue lighten-1">
+    <div class="container center-align white-text">
+      &copy; 2025 TaskNest
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const notepad = document.getElementById('notepad');
+      const saved = localStorage.getItem('tasknest_note');
+      if (saved) {
+        notepad.value = saved;
+        M.textareaAutoResize(notepad);
+      }
+      notepad.addEventListener('input', () => {
+        localStorage.setItem('tasknest_note', notepad.value);
+      });
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+  
+

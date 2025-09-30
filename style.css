@@ -1,0 +1,72 @@
+/* Light mode defaults */
+body {
+  background-color: #f9f9f9;
+  color: #333;
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+h4, h5 {
+  font-weight: 500;
+}
+
+.section {
+  padding-top: 30px;
+  padding-bottom: 30px;
+}
+
+.collection-item {
+  font-size: 16px;
+  padding: 12px 20px;
+}
+
+.card-content p {
+  font-size: 15px;
+  color: #444;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.page-footer {
+  margin-top: 50px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: 14px;
+}
+
+.fixed-action-btn {
+  bottom: 45px;
+  right: 24px;
+}
+
+@media screen and (max-width: 600px) {
+  .card-title {
+    font-size: 16px;
+  }
+  .collection-item {
+    font-size: 14px;
+  }
+}
+
+/* Dark mode styles */
+body.dark-mode {
+  background-color: #121212;
+  color: #f1f1f1;
+}
+
+body.dark-mode .nav-wrapper,
+body.dark-mode .page-footer {
+  background-color: #333 !important;
+}
+
+body.dark-mode .input-field input,
+body.dark-mode textarea,
+body.dark-mode .collection-item,
+body.dark-mode .card {
+  background-color: #1e1e1e;
+  color: #f1f1f1;
+}
