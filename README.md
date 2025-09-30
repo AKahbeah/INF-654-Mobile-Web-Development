@@ -16,8 +16,8 @@
 
 ## 🖥️ Live Demo
 
-🔗 [View Live Prototype on GitHub Pages](https://yourusername.github.io/TaskNest-PWA/)  
-_(Replace with your actual GitHub Pages link)_
+🔗 [View Live Prototype on GitHub Pages](https://github.com/AKahbeah/INF-654-Mobile-Web-Development)  
+
 
 ---
 
