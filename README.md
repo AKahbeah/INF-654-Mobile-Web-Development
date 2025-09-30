@@ -49,4 +49,4 @@ This is a front-end-only prototype to demonstrate the core ideas behind a PWA.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/TaskNest-PWA.git
+   git clone https://github.com/AKahbeah/TaskNest-PWA.git
