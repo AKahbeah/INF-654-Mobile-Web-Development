@@ -51,23 +51,48 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script src="app.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    (async function(){
+      // Wait until our StorageManager is loaded by app.js (it injects the helper scripts)
+      function waitForStorage(timeout = 5000){
+        const start = Date.now();
+        return new Promise((resolve, reject) => {
+          (function poll(){
+            if (window.StorageManager && window.IDBHelper) return resolve();
+            if (Date.now() - start > timeout) return reject(new Error('StorageManager not available'));
+            setTimeout(poll, 100);
+          })();
+        });
+      }
+
+      try {
+        await waitForStorage();
+      } catch (err) {
+        console.warn('Storage helpers not loaded, falling back to localStorage', err);
+      }
+
       const form = document.getElementById('task-form');
       const input = document.getElementById('task-input');
       const list = document.getElementById('task-list');
 
-      let tasks = JSON.parse(localStorage.getItem('tasknest_tasks')) || [];
+      let tasks = [];
+
+      async function load() {
+        if (window.StorageManager) tasks = await StorageManager.getAllTasks();
+        else tasks = JSON.parse(localStorage.getItem('tasknest_tasks')) || [];
+        renderTasks();
+      }
 
       function renderTasks() {
         list.innerHTML = '';
-        tasks.forEach((task, idx) => {
+        tasks.forEach((task) => {
           const li = document.createElement('li');
           li.className = 'collection-item';
+          li.dataset.id = task.id || '';
           li.innerHTML = `
             <label>
-              <input type="checkbox" ${task.done ? 'checked' : ''} data-index="${idx}" />
+              <input type="checkbox" ${task.done ? 'checked' : ''} data-id="${task.id || ''}" />
               <span style="${task.done ? 'text-decoration: line-through;' : ''}">${task.text}</span>
-              <i class="material-icons secondary-content delete-task" data-index="${idx}"
+              <i class="material-icons secondary-content delete-task" data-id="${task.id || ''}"
                  style="cursor: pointer;">delete</i>
             </label>
           `;
@@ -75,38 +100,57 @@
         });
       }
 
-      function save() {
+      async function saveLocalFallback(){
         localStorage.setItem('tasknest_tasks', JSON.stringify(tasks));
       }
 
-      form.addEventListener('submit', e => {
+      form.addEventListener('submit', async e => {
         e.preventDefault();
         const text = input.value.trim();
-        if (text) {
-          tasks.push({ text, done: false });
-          input.value = '';
-          renderTasks();
-          save();
+        if (!text) return;
+        const newRec = { text, done: false };
+        if (window.StorageManager) {
+          const saved = await StorageManager.createTask(newRec);
+          tasks.push(saved);
+        } else {
+          // fallback
+          newRec.id = 'loc-' + Date.now();
+          tasks.push(newRec);
+          saveLocalFallback();
         }
+        input.value = '';
+        renderTasks();
       });
 
-      list.addEventListener('click', e => {
+      list.addEventListener('click', async e => {
         if (e.target.matches('input[type="checkbox"]')) {
-          const idx = e.target.dataset.index;
+          const id = e.target.dataset.id;
+          const idx = tasks.findIndex(t=>t.id==id);
+          if (idx === -1) return;
           tasks[idx].done = !tasks[idx].done;
+          if (window.StorageManager) {
+            await StorageManager.updateTask(tasks[idx].id, tasks[idx]);
+          } else {
+            saveLocalFallback();
+          }
           renderTasks();
-          save();
         }
         if (e.target.classList.contains('delete-task')) {
-          const idx = e.target.dataset.index;
-          tasks.splice(idx, 1);
+          const id = e.target.dataset.id;
+          const idx = tasks.findIndex(t=>t.id==id);
+          if (idx === -1) return;
+          const toDelete = tasks.splice(idx,1)[0];
+          if (window.StorageManager) {
+            await StorageManager.deleteTask(toDelete.id);
+          } else {
+            saveLocalFallback();
+          }
           renderTasks();
-          save();
         }
       });
 
-      renderTasks();
-    });
+      await load();
+    })();
   </script>
 </body>
 </html>

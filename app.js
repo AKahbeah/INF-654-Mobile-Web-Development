@@ -28,10 +28,23 @@ document.addEventListener('DOMContentLoaded', () => {
     M.AutoInit();
   }
 
-  // Service worker registration
+  // Service worker registration (ensure correct filename)
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
+    navigator.serviceWorker.register('serviceworker.js')
       .then(reg => console.log('Service Worker Registered', reg))
       .catch(err => console.error('Service Worker Failed', err));
   }
+
+  // If Firebase config exists, load helpers (they'll initialize lazily)
+  // Load IDB and sync helpers so pages can use StorageManager
+  const loadHelpers = async () => {
+    const scripts = ['idb-helper.js', 'firebase-helper.js', 'sync-storage.js'];
+    for (const s of scripts) {
+      const el = document.createElement('script');
+      el.src = s;
+      el.defer = true;
+      document.head.appendChild(el);
+    }
+  };
+  loadHelpers();
 });

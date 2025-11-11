@@ -71,3 +71,32 @@ localStorage.removeItem('tasknest_theme');
 ```
 
 These changes are also reflected in `app.js` (a `TaskNestStorage` wrapper around localStorage) so pages share the same persistence API.
+
+---
+
+## 🔁 Firebase & IndexedDB (Online / Offline Sync)
+
+This prototype includes optional helpers for integrating Firebase (Firestore) when online and IndexedDB when offline. The code is added as helpers and will only activate if you provide a Firebase configuration.
+
+Files added:
+- `firebase-config.example.js` — example config (copy to `firebase-config.js` and fill with your project's values).
+- `firebase-helper.js` — dynamically loads Firebase (compat) and exposes basic Firestore CRUD for `tasks`.
+- `idb-helper.js` — a small IndexedDB wrapper used for offline storage and a sync queue.
+- `sync-storage.js` — a high-level StorageManager that chooses Firebase when online and IndexedDB when offline and syncs queued operations when reconnecting.
+
+How it works:
+- The app will use `StorageManager.createTask` / `updateTask` / `deleteTask` / `getAllTasks` from `sync-storage.js`.
+- When online (and `firebase-config.js` is provided), StorageManager will write/read from Firestore and mirror data locally.
+- When offline, StorageManager writes to IndexedDB and enqueues the operation in a `sync-queue` store.
+- When the app regains connectivity, the queued operations are replayed against Firestore and local IndexedDB is updated with the authoritative snapshot.
+
+Setup steps:
+1. Create a Firebase project and enable Firestore.
+2. Copy `firebase-config.example.js` → `firebase-config.js` and fill `window.FIREBASE_CONFIG` with your project's config.
+3. Serve the site (PWA) and open the app. When online, the helper will initialize Firebase and use Firestore.
+
+Notes & warnings:
+- Do NOT commit `firebase-config.js` with secret values. Keep it local or use environment-based deployment.
+- This is a minimal sync approach for a prototype. For production-ready sync consider conflict resolution strategies, timestamps, and merging policies.
+- The sync logic prefers Firestore as the authoritative data source after a successful sync.
+
