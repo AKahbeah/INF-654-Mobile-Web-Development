@@ -50,6 +50,9 @@
       </li>
     </ul>
 
+  <h5>Upcoming Events</h5>
+  <ul id="upcoming-events" class="collection"></ul>
+
     <h5>Quick Notes</h5>
     <div class="row">
       <div class="col s12 m6">
@@ -89,5 +92,28 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script src="app.js"></script>
+  <script>
+    // Load and show upcoming events, and schedule notifications while page open
+    (function(){
+      function loadEvents(){
+        try{ return JSON.parse(localStorage.getItem('tasknest_events')) || []; }catch(e){ return []; }
+      }
+      function render(){
+        const list = document.getElementById('upcoming-events');
+        if (!list) return;
+        const events = loadEvents().filter(e=> new Date(e.start) > new Date()).sort((a,b)=> new Date(a.start)-new Date(b.start)).slice(0,5);
+        if (!events.length) { list.innerHTML = '<li class="collection-item grey-text">No upcoming events.</li>'; return; }
+        list.innerHTML = '';
+        events.forEach(e => {
+          const li = document.createElement('li');
+          li.className = 'collection-item';
+          li.innerHTML = `<strong>${e.title}</strong><br><small class="grey-text">${new Date(e.start).toLocaleString()}</small>`;
+          list.appendChild(li);
+          if (window.scheduleNotification) window.scheduleNotification(e);
+        });
+      }
+      document.addEventListener('DOMContentLoaded', render);
+    })();
+  </script>
 </body>
 </html>

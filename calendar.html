@@ -27,6 +27,21 @@
 
   <div class="container section">
     <h4>Your Calendar</h4>
+    <div>
+      <form id="event-form" class="row">
+        <div class="input-field col s5">
+          <input id="event-title" type="text" />
+          <label for="event-title">Event title</label>
+        </div>
+        <div class="input-field col s5">
+          <input id="event-datetime" type="datetime-local" />
+        </div>
+        <div class="col s2" style="padding-top: 18px;">
+          <button class="btn blue" id="add-event" type="submit">Add</button>
+        </div>
+      </form>
+      <div id="events-list" class="section"></div>
+    </div>
     <div id="calendar" style="margin-top: 30px;"></div>
   </div>
 
@@ -41,6 +56,69 @@
   <script src="app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
+      // Events storage and notification scheduling
+      function loadEvents(){
+        try{ return JSON.parse(localStorage.getItem('tasknest_events')) || []; }catch(e){ return []; }
+      }
+      function saveEvents(evts){ localStorage.setItem('tasknest_events', JSON.stringify(evts)); }
+
+      function renderEvents(){
+        const list = document.getElementById('events-list');
+        const evts = loadEvents().sort((a,b)=> new Date(a.start)-new Date(b.start));
+        if (!evts.length) { list.innerHTML = '<p class="grey-text">No upcoming events.</p>'; return; }
+        list.innerHTML = '<ul class="collection"></ul>';
+        const ul = list.querySelector('ul');
+        evts.forEach(e=>{
+          const li = document.createElement('li');
+          li.className = 'collection-item';
+          li.dataset.id = e.id;
+          const dt = new Date(e.start);
+          li.innerHTML = `<strong>${e.title}</strong><br><small class="grey-text">${dt.toLocaleString()}</small><a class="secondary-content delete-event" data-id="${e.id}" style="cursor:pointer"><i class="material-icons">delete</i></a>`;
+          ul.appendChild(li);
+        });
+      }
+
+      function scheduleAll(){
+        const evts = loadEvents();
+        evts.forEach(e => {
+          if (window.scheduleNotification) window.scheduleNotification(e);
+        });
+      }
+
+      // handle add event
+      const form = document.getElementById('event-form');
+      form.addEventListener('submit', function(evt){
+        evt.preventDefault();
+        const title = document.getElementById('event-title').value.trim();
+        const dt = document.getElementById('event-datetime').value;
+        if (!title || !dt) {
+          if (typeof M !== 'undefined' && M.toast) M.toast({ html: 'Please provide title and date/time.' });
+          return;
+        }
+        const events = loadEvents();
+        const id = 'evt-' + Date.now();
+        const rec = { id, title, start: new Date(dt).toISOString() };
+        events.push(rec);
+        saveEvents(events);
+        renderEvents();
+        if (window.scheduleNotification) window.scheduleNotification(rec);
+        document.getElementById('event-title').value = '';
+        document.getElementById('event-datetime').value = '';
+        // re-init Materialize labels
+        M.updateTextFields && M.updateTextFields();
+      });
+
+      // delete
+      document.getElementById('events-list').addEventListener('click', function(e){
+        if (e.target.closest('.delete-event')){
+          const id = e.target.closest('.delete-event').dataset.id;
+          let evts = loadEvents();
+          evts = evts.filter(x=>x.id!==id);
+          saveEvents(evts);
+          renderEvents();
+        }
+      });
+
       const calendarEl = document.getElementById('calendar');
       const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',

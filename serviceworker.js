@@ -11,8 +11,12 @@ const ASSETS_TO_CACHE = [
   'settings.html',
   'style.css',        // assume style.css in root or adjust path
   'app.js',            // main script
-  'images/icon-192.png',
-  'images/icon-512.png'
+  'idb-helper.js',
+  'firebase-helper.js',
+  'sync-storage.js',
+  'firebase-config.example.js',
+  'icon-192.png',
+  'icon-512.png'
 ];
 
 // Clean up old caches
