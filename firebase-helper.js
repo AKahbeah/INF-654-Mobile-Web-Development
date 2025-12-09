@@ -2,6 +2,7 @@
 (function(global){
   let firebaseApp = null;
   let firestore = null;
+  let auth = null;
   let ready = false;
 
   async function loadScript(src){
@@ -24,12 +25,14 @@
     try {
       // Load modular CDN (compat layer) — using compat for simpler API in this prototype
       await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
-      await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js');
 
       firebaseApp = window.firebase.initializeApp(window.FIREBASE_CONFIG);
       firestore = window.firebase.firestore();
+      try { auth = window.firebase.auth(); } catch (e) { /* ignore */ }
       ready = true;
-      console.info('Firebase initialized');
+      console.info('Firebase initialized (firestore + auth)');
     } catch (err) {
       console.warn('Failed to load/initialize Firebase:', err);
     }
@@ -42,36 +45,66 @@
       return ready;
     },
 
-    async addTask(task){
+    // Auth helpers
+    async signInWithGoogle(){
       if (!await fb.ensure()) throw new Error('Firebase not ready');
-      // Use provided id if exists, else let Firestore generate one and return the id
-      const col = firestore.collection('tasks');
-      if (task.id) {
+      if (!auth) throw new Error('Auth not available');
+      const provider = new window.firebase.auth.GoogleAuthProvider();
+      return auth.signInWithPopup(provider);
+    },
+
+    async signOut(){
+      if (!await fb.ensure()) throw new Error('Firebase not ready');
+      if (!auth) throw new Error('Auth not available');
+      return auth.signOut();
+    },
+
+    onAuthStateChanged(cb){
+      if (!window.firebase || !window.firebase.auth) return () => {};
+      return window.firebase.auth().onAuthStateChanged(cb);
+    },
+
+    getCurrentUser(){
+      if (!window.firebase || !window.firebase.auth) return null;
+      return window.firebase.auth().currentUser;
+    },
+
+    // Per-user task CRUD: store under users/{uid}/tasks
+    async addTask(uid, task){
+      if (!await fb.ensure()) throw new Error('Firebase not ready');
+      if (!uid) throw new Error('User ID required');
+      const col = firestore.collection('users').doc(uid).collection('tasks');
+      if (task.id && !task.id.startsWith('c-')) {
         await col.doc(task.id).set(task);
         return task;
       }
-      const docRef = await col.add(task);
-      task.id = docRef.id;
-      await col.doc(task.id).set(task);
-      return task;
+      const data = Object.assign({}, task);
+      if (data.id && data.id.startsWith('c-')) delete data.id;
+      const docRef = await col.add(data);
+      data.id = docRef.id;
+      await col.doc(data.id).set(data);
+      return data;
     },
 
-    async updateTask(id, patch){
+    async updateTask(uid, id, patch){
       if (!await fb.ensure()) throw new Error('Firebase not ready');
-      const col = firestore.collection('tasks');
-      await col.doc(id).set(patch, { merge: true });
-      return await col.doc(id).get().then(d=> ({ id: d.id, ...d.data() }));
+      if (!uid) throw new Error('User ID required');
+      const docRef = firestore.collection('users').doc(uid).collection('tasks').doc(id);
+      await docRef.set(patch, { merge: true });
+      const d = await docRef.get();
+      return { id: d.id, ...d.data() };
     },
 
-    async deleteTask(id){
+    async deleteTask(uid, id){
       if (!await fb.ensure()) throw new Error('Firebase not ready');
-      const col = firestore.collection('tasks');
-      await col.doc(id).delete();
+      if (!uid) throw new Error('User ID required');
+      await firestore.collection('users').doc(uid).collection('tasks').doc(id).delete();
     },
 
-    async getAllTasks(){
+    async getAllTasks(uid){
       if (!await fb.ensure()) throw new Error('Firebase not ready');
-      const col = firestore.collection('tasks');
+      if (!uid) throw new Error('User ID required');
+      const col = firestore.collection('users').doc(uid).collection('tasks');
       const snap = await col.get();
       const arr = [];
       snap.forEach(d => arr.push({ id: d.id, ...d.data() }));

@@ -48,6 +48,54 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   loadHelpers();
 
+  // Wire Firebase auth UI and StorageManager user context once helpers load
+  (async function wireAuthAndStorage(){
+    // wait for helpers to be available
+    const waitFor = async (testFn, timeout = 5000) => {
+      const start = Date.now();
+      return new Promise((resolve) => {
+        (function poll(){
+          try { if (testFn()) return resolve(true); } catch(e) {}
+          if (Date.now() - start > timeout) return resolve(false);
+          setTimeout(poll, 100);
+        })();
+      });
+    };
+
+    const ok = await waitFor(() => window.FirebaseHelper && window.StorageManager && window.IDBHelper, 8000);
+    if (!ok) return;
+
+    // update StorageManager when auth state changes
+    window.FirebaseHelper.onAuthStateChanged(async (user) => {
+      const authBtn = document.getElementById('auth-btn');
+      const userEmail = document.getElementById('user-email');
+      if (user) {
+        if (authBtn) authBtn.textContent = 'Sign out';
+        if (userEmail) userEmail.textContent = user.email || user.displayName || '';
+        if (window.StorageManager && window.StorageManager.setUser) window.StorageManager.setUser(user.uid || user);
+        // attempt to sync queued operations for this user
+        try { await window.StorageManager.syncFromQueue(); } catch(e) { console.warn('Sync after sign-in failed', e); }
+      } else {
+        if (authBtn) authBtn.textContent = 'Sign in';
+        if (userEmail) userEmail.textContent = '';
+        if (window.StorageManager && window.StorageManager.setUser) window.StorageManager.setUser(null);
+      }
+
+      if (authBtn) {
+        authBtn.onclick = async () => {
+          try {
+            const current = window.FirebaseHelper.getCurrentUser && window.FirebaseHelper.getCurrentUser();
+            if (current) {
+              await window.FirebaseHelper.signOut();
+            } else {
+              await window.FirebaseHelper.signInWithGoogle();
+            }
+          } catch (err) { console.warn('Auth action failed', err); }
+        };
+      }
+    });
+  })();
+
   // Notification preference and in-page scheduling helper
   function isNotifyEnabled(){
     return localStorage.getItem('tasknest_notify') === 'true';
