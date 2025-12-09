@@ -62,36 +62,89 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     };
 
-    const ok = await waitFor(() => window.FirebaseHelper && window.StorageManager && window.IDBHelper, 8000);
-    if (!ok) return;
+    // Attach a resilient click handler immediately so the button works even if helpers are still loading.
+    const authBtn = document.getElementById('auth-btn');
+    const userEmail = document.getElementById('user-email');
+    const authStatus = document.getElementById('auth-status');
+
+    const setAuthStatus = (s) => {
+      try { if (authStatus) authStatus.textContent = s; } catch(e) {}
+      console.log('[AuthStatus]', s);
+    };
+
+    // Attempt auth action, waiting for FirebaseHelper to load (with fallback to redirect if popup blocked)
+    const attemptAuthAction = async () => {
+      setAuthStatus('Auth: initializing...');
+      const ok = await waitFor(() => window.FirebaseHelper && window.FirebaseHelper.signInWithGoogle, 8000);
+      if (!ok) {
+        setAuthStatus('Auth helper not ready');
+        return;
+      }
+
+      try {
+        const current = window.FirebaseHelper.getCurrentUser && window.FirebaseHelper.getCurrentUser();
+        if (current) {
+          setAuthStatus('Signing out...');
+          await window.FirebaseHelper.signOut();
+          setAuthStatus('Signed out');
+          return;
+        }
+
+        setAuthStatus('Signing in...');
+        try {
+          await window.FirebaseHelper.signInWithGoogle();
+          setAuthStatus('Sign-in popup launched');
+        } catch (err) {
+          console.warn('Primary sign-in failed, trying redirect fallback', err);
+          // fallback to redirect flow if popup blocked or not allowed
+          if (window.firebase && window.firebase.auth && window.firebase.auth().signInWithRedirect) {
+            try {
+              const provider = new window.firebase.auth.GoogleAuthProvider();
+              await window.firebase.auth().signInWithRedirect(provider);
+              setAuthStatus('Redirecting for sign-in...');
+            } catch (err2) {
+              console.error('Redirect sign-in failed', err2);
+              setAuthStatus('Sign-in failed: ' + (err2.message || err.message || err));
+            }
+          } else {
+            setAuthStatus('Sign-in failed: ' + (err.message || err));
+          }
+        }
+      } catch (err) {
+        console.warn('Auth action failed', err);
+        setAuthStatus('Auth failed: ' + (err.message || err));
+      }
+    };
+
+    if (authBtn) {
+      // provisional handler so click always triggers attemptAuthAction
+      authBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        attemptAuthAction();
+      });
+    }
+
+    // Now wait for FirebaseHelper and StorageManager and wire auth state changes
+    const ready = await waitFor(() => window.FirebaseHelper && window.StorageManager && window.IDBHelper, 10000);
+    if (!ready) {
+      setAuthStatus('Helpers not fully loaded');
+      return;
+    }
 
     // update StorageManager when auth state changes
     window.FirebaseHelper.onAuthStateChanged(async (user) => {
-      const authBtn = document.getElementById('auth-btn');
-      const userEmail = document.getElementById('user-email');
       if (user) {
         if (authBtn) authBtn.textContent = 'Sign out';
         if (userEmail) userEmail.textContent = user.email || user.displayName || '';
+        setAuthStatus('Signed in');
         if (window.StorageManager && window.StorageManager.setUser) window.StorageManager.setUser(user.uid || user);
         // attempt to sync queued operations for this user
         try { await window.StorageManager.syncFromQueue(); } catch(e) { console.warn('Sync after sign-in failed', e); }
       } else {
         if (authBtn) authBtn.textContent = 'Sign in';
         if (userEmail) userEmail.textContent = '';
+        setAuthStatus('Signed out');
         if (window.StorageManager && window.StorageManager.setUser) window.StorageManager.setUser(null);
-      }
-
-      if (authBtn) {
-        authBtn.onclick = async () => {
-          try {
-            const current = window.FirebaseHelper.getCurrentUser && window.FirebaseHelper.getCurrentUser();
-            if (current) {
-              await window.FirebaseHelper.signOut();
-            } else {
-              await window.FirebaseHelper.signInWithGoogle();
-            }
-          } catch (err) { console.warn('Auth action failed', err); }
-        };
       }
     });
   })();

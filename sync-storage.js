@@ -25,6 +25,8 @@
     async createTask(record){
       // ensure id
       if (!record.id) record.id = genId();
+      // set created timestamp when first created
+      if (!record._createdAt) record._createdAt = new Date().toISOString();
       record._updatedAt = new Date().toISOString();
 
       if (navigator.onLine && window.FIREBASE_CONFIG && this._userId) {
@@ -127,9 +129,10 @@
       });
 
       // after draining, make sure local store reflects firebase
-      const all = await FirebaseHelper.getAllTasks();
-      // Overwrite local store with authoritative firebase snapshot
-      for (const r of all) await IDBHelper.putTask(r);
+      const all = await FirebaseHelper.getAllTasks(this._userId);
+      // Overwrite only this user's local tasks with authoritative firebase snapshot
+      await IDBHelper.clearTasksForUser(this._userId);
+      for (const r of all) await IDBHelper.putTask(Object.assign({}, r, { _userId: this._userId }));
       return all;
     }
   };
