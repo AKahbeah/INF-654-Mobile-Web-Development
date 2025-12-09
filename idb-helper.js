@@ -72,6 +72,38 @@
       await withStore(STORE_TASKS, 'readwrite', store => store.delete(id));
     },
 
+    async clearTasks(){
+      await withStore(STORE_TASKS, 'readwrite', store => {
+        // open a cursor and delete all
+        const req = store.openCursor();
+        req.onsuccess = function(e){
+          const cursor = e.target.result;
+          if (!cursor) return;
+          cursor.delete();
+          cursor.continue();
+        };
+      });
+    },
+
+    // Clear only tasks that belong to a specific user (by _userId)
+    async clearTasksForUser(uid){
+      if (!uid) return;
+      await withStore(STORE_TASKS, 'readwrite', store => {
+        const req = store.openCursor();
+        req.onsuccess = function(e){
+          const cursor = e.target.result;
+          if (!cursor) return;
+          try {
+            const val = cursor.value;
+            if (val && val._userId === uid) cursor.delete();
+          } catch (err) {
+            // ignore and continue
+          }
+          cursor.continue();
+        };
+      });
+    },
+
     // simple queue for operations to sync when back online
     async enqueue(op){
       // op: { type: 'add'|'update'|'delete', record: {...} }

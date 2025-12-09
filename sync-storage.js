@@ -14,16 +14,26 @@
   }
 
   const StorageManager = {
+    _userId: null,
+
+    setUser(userOrUid){
+      if (!userOrUid) {
+        this._userId = null; return;
+      }
+      this._userId = (typeof userOrUid === 'string') ? userOrUid : (userOrUid.uid || userOrUid.id || null);
+    },
     async createTask(record){
       // ensure id
       if (!record.id) record.id = genId();
+      // set created timestamp when first created
+      if (!record._createdAt) record._createdAt = new Date().toISOString();
       record._updatedAt = new Date().toISOString();
 
-      if (navigator.onLine && window.FIREBASE_CONFIG) {
+      if (navigator.onLine && window.FIREBASE_CONFIG && this._userId) {
         try {
-          const saved = await FirebaseHelper.addTask(record);
+          const saved = await FirebaseHelper.addTask(this._userId, record);
           // keep a local copy too
-          await IDBHelper.putTask(saved);
+          await IDBHelper.putTask(Object.assign({}, saved, { _userId: this._userId }));
           return saved;
         } catch (err) {
           console.warn('Firebase add failed, falling back to IndexedDB:', err);
@@ -38,10 +48,10 @@
 
     async updateTask(id, patch){
       patch._updatedAt = new Date().toISOString();
-      if (navigator.onLine && window.FIREBASE_CONFIG) {
+      if (navigator.onLine && window.FIREBASE_CONFIG && this._userId) {
         try {
-          const updated = await FirebaseHelper.updateTask(id, patch);
-          await IDBHelper.putTask(updated);
+          const updated = await FirebaseHelper.updateTask(this._userId, id, patch);
+          await IDBHelper.putTask(Object.assign({}, updated, { _userId: this._userId }));
           return updated;
         } catch (err) {
           console.warn('Firebase update failed, enqueueing:', err);
@@ -57,9 +67,9 @@
     },
 
     async deleteTask(id){
-      if (navigator.onLine && window.FIREBASE_CONFIG) {
+      if (navigator.onLine && window.FIREBASE_CONFIG && this._userId) {
         try {
-          await FirebaseHelper.deleteTask(id);
+          await FirebaseHelper.deleteTask(this._userId, id);
           await IDBHelper.deleteTask(id);
           return;
         } catch (err) {
@@ -67,25 +77,29 @@
         }
       }
       await IDBHelper.deleteTask(id);
-      await IDBHelper.enqueue({ type: 'delete', record: { id } });
+      await IDBHelper.enqueue({ type: 'delete', record: { id, _userId: this._userId } });
     },
 
     async getAllTasks(){
-      if (navigator.onLine && window.FIREBASE_CONFIG) {
+      if (navigator.onLine && window.FIREBASE_CONFIG && this._userId) {
         try {
-          const arr = await FirebaseHelper.getAllTasks();
-          // refresh local copy
-          for (const r of arr) await IDBHelper.putTask(r);
+          const arr = await FirebaseHelper.getAllTasks(this._userId);
+          // refresh local copy (only for this user)
+          await IDBHelper.clearTasks();
+          for (const r of arr) await IDBHelper.putTask(Object.assign({}, r, { _userId: this._userId }));
           return arr;
         } catch (err) {
           console.warn('Firebase read failed, falling back to IndexedDB:', err);
         }
       }
-      return await IDBHelper.getAllTasks();
+      // offline: filter local tasks by _userId
+      const all = await IDBHelper.getAllTasks();
+      if (this._userId) return all.filter(t => t._userId === this._userId);
+      return all;
     },
 
     async syncFromQueue(){
-      if (!navigator.onLine || !window.FIREBASE_CONFIG) {
+      if (!navigator.onLine || !window.FIREBASE_CONFIG || !this._userId) {
         throw new Error('Not online or Firebase not configured');
       }
       // process queue sequentially
@@ -93,27 +107,32 @@
         if (op.type === 'add') {
           // if record already has a firebase-style id (not starting with c-), preserve it
           const rec = op.record;
-          // let Firebase assign an id if the client id looks temporary
+          // ensure correct user id on the record
+          const uid = rec._userId || this._userId;
+          if (!uid) throw new Error('No user id for queued add');
           if (rec.id && rec.id.startsWith('c-')) {
-            // create in firebase and update local to new id
-            const created = await FirebaseHelper.addTask(Object.assign({}, rec, { id: undefined }));
-            // delete old local record and store new with firebase id
+            const created = await FirebaseHelper.addTask(uid, Object.assign({}, rec, { id: undefined }));
             await IDBHelper.deleteTask(rec.id);
-            await IDBHelper.putTask(created);
+            await IDBHelper.putTask(Object.assign({}, created, { _userId: uid }));
           } else {
-            await FirebaseHelper.addTask(rec);
+            await FirebaseHelper.addTask(uid, rec);
           }
         } else if (op.type === 'update') {
-          await FirebaseHelper.updateTask(op.record.id, op.record);
+          const uid = op.record._userId || this._userId;
+          if (!uid) throw new Error('No user id for queued update');
+          await FirebaseHelper.updateTask(uid, op.record.id, op.record);
         } else if (op.type === 'delete') {
-          await FirebaseHelper.deleteTask(op.record.id);
+          const uid = op.record._userId || this._userId;
+          if (!uid) throw new Error('No user id for queued delete');
+          await FirebaseHelper.deleteTask(uid, op.record.id);
         }
       });
 
       // after draining, make sure local store reflects firebase
-      const all = await FirebaseHelper.getAllTasks();
-      // Overwrite local store with authoritative firebase snapshot
-      for (const r of all) await IDBHelper.putTask(r);
+      const all = await FirebaseHelper.getAllTasks(this._userId);
+      // Overwrite only this user's local tasks with authoritative firebase snapshot
+      await IDBHelper.clearTasksForUser(this._userId);
+      for (const r of all) await IDBHelper.putTask(Object.assign({}, r, { _userId: this._userId }));
       return all;
     }
   };
